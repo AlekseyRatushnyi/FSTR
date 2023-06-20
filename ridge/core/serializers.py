@@ -50,4 +50,5 @@ class PerevalSerializer(WritableNestedModelSerializer):
                   'images',
                   'status',
                   )
+        read_only_fields = ['user', 'add_time', 'status']
 
