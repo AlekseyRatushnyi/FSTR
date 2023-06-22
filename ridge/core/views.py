@@ -21,23 +21,49 @@ class PerevalViewset(mixins.CreateModelMixin,
     queryset = Pereval.objects.all()
     serializer_class = PerevalSerializer
 
+    def list(self, request, *args, **kwargs):
+        user = request.GET.get('user__email')
+        if user is None:
+            queryset = self.filter_queryset(self.get_queryset())
+        else:
+            queryset = Pereval.objects.filter(user__email=user)
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+
+        if getattr(instance, '_prefetched_objects_cache', None):
+            # If 'prefetch_related' has been applied to a queryset, we need to
+            # forcibly invalidate the prefetch cache on the instance.
+            instance._prefetched_objects_cache = {}
+
+        if instance.status == 'new':
+            self.perform_update(serializer)
+            return Response({'state': 1, 'message': 'Запись успешно изменена'})
+        else:
+            return Response({'state': 0, 'message': 'Update is not allowed - status is not new'})
+
+
+
+
+
+
+
     @action(methods=['get'], detail=False)
     def userdetail(self, request):
         obj = Pereval.objects.values().all()
         return Response({'user_posts': [(p['title'],p['beauty_title']) for p in obj]})
 
-    # def create(self, request, *args, **kwargs):
-    #     serializer = self.get_serializer(data=request.data)
-    #     serializer.is_valid(raise_exception=False)
-    #     try:
-    #         self.perform_create(serializer)
-    #         headers = self.get_success_headers(serializer.data)
-    #         # return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
-    #     except:
-    #         return Response({'status': '400-Bad Request'})
-    #     if serializer.is_valid:
-    #         pk = Pereval.objects.values().last()['id']
-    #         return Response({'status': '200-успех', 'mesage': 'Отправлено успешно', "id": str(pk)})
+
 
 
 
