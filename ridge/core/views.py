@@ -40,17 +40,22 @@ class PerevalViewset(mixins.CreateModelMixin,
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
-        if instance.status == 'new':
-            self.perform_update(serializer)
-        else:
-            return Response('Update is not allowed - status is not new')
 
         if getattr(instance, '_prefetched_objects_cache', None):
             # If 'prefetch_related' has been applied to a queryset, we need to
             # forcibly invalidate the prefetch cache on the instance.
             instance._prefetched_objects_cache = {}
 
-        return Response(serializer.data)
+        if instance.status == 'new':
+            self.perform_update(serializer)
+            return Response({'state': 1, 'message': 'Запись успешно изменена'})
+        else:
+            return Response({'state': 0, 'message': 'Update is not allowed - status is not new'})
+
+
+
+
+
 
 
     @action(methods=['get'], detail=False)
